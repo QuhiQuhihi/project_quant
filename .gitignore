@@ -1,3 +1,5 @@
 /test_data
 /.idea
 /.venv_quant
+/__pycache__
+utils/__pycache__/
