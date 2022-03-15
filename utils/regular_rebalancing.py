@@ -73,9 +73,6 @@ def momentum_rebalance_strategy(strategy, yld_df, bm_strategy, bm_yld_df,lookbac
     bm_asset_list = bm_yld_df.columns
     bm_date_list = bm_yld_df.index
 
-    investment_weight = pd.DataFrame(columns=asset_list, index=date_list)
-    benchmark_weight = pd.DataFrame(columns=bm_asset_list, index=bm_date_list)
-
     investment_return = pd.DataFrame(columns=['strategy_return','benchmark_return'], index=date_list)
 
     investment_weight = strategy(yld_df)
