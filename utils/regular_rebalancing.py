@@ -84,21 +84,27 @@ def momentum_rebalance_strategy(strategy, yld_df, bm_strategy, bm_yld_df,lookbac
     benchmark_weight = bm_strategy(bm_yld_df)
 
 
-    for date in date_list:
-        ret = 0
-        for asset in asset_list:
-            asset_return = yld_df.loc[date, asset]
-            asset_weight = investment_weight.loc[date, asset]
-            ret += (1 + asset_return) * asset_weight
-        investment_return.loc[date,'strategy_return'] = ret - 1
+    for i in range(len(date_list)):
+        if i == 0:
+            investment_return['strategy_return'].iloc[i] = 0
+        else:
+            ret = 0
+            for asset in asset_list:
+                asset_return = yld_df[asset].iloc[i]
+                asset_weight = investment_weight[asset].iloc[i-1]
+                ret += (1 + asset_return) * asset_weight
+            investment_return['strategy_return'].iloc[i] = ret - 1
 
-    for date in bm_date_list:
-        ret = 0
-        for asset in bm_asset_list:
-            bm_asset_return = bm_yld_df.loc[date, asset]
-            bm_asset_weight = benchmark_weight.loc[date, asset]
-            ret += (1 + bm_asset_return) * bm_asset_weight
-        investment_return.loc[date, 'benchmark_return'] = ret - 1
+    for i in range(len(date_list)):
+        if i == 0:
+            investment_return['benchmark_return'].iloc[i] = 0
+        else:
+            ret = 0
+            for asset in bm_asset_list:
+                bm_asset_return = bm_yld_df[asset].iloc[i]
+                bm_asset_weight = benchmark_weight[asset].iloc[i-1]
+                ret += (1 + bm_asset_return) * bm_asset_weight
+            investment_return['benchmark_return'].iloc[i] = ret - 1
 
     investment_return = pd.concat([investment_return,investment_weight], axis=1)
     investment_return = investment_return.iloc[lookback_period:]
