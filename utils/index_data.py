@@ -20,18 +20,18 @@ class index_data:
         result_df = pd.DataFrame()
 
         index_data_name_file = {
+            'msci_acwi':'MSCI_All Country World.xlsx',
             'msci_world':'MSCI World.xlsx',
             'msci_emerging':'MSCI Emerging.xlsx',
+            'msci_world_gross':'MSCI World Gross.xlsx',
+            'msci_world_value':'MSCI World Value.xlsx',
             'msci_real_estate':'MSCI World Real Estate.xlsx',
-            'snp_infra':'SNP GSCI TR.xlsx',
-            'bb_short_treasury':'Bloomberg Barclays US 1-3 month treasury.xlsx',
-            'bb_long_maturity':'Bloomberg US 7-10 Treasury.xlsx',
+            'bb_world_agg':'Bloomberg Barclays US AGG.xlsx',
+            'bb_emerging_agg':'Bloomberg Barclays EM AGG.xlsx',
             'bb_corp_ig':'Bloomberg Barclays US Corp IG.xlsx',
             'bb_corp_hy':'Bloomberg Barclays US Corp HY.xlsx',
-            'bb_infla_protect':'Bloomberg Barclays US Inflation Protected.xlsx',
-            'snp_metal':'SNP metal and mining.xlsx',
-            'snp_oil':'SNP oil gas exploration and production.xlsx',
-
+            'bb_infla_protect':'Bloomberg Barclays US Inflation Protected 7-10 year.xlsx',
+            'snp_commodity':'SNP GSCI TR.xlsx',
         }
         for ind_name in index_data_name_file.keys():
             # load_index_data(self.start_date, self.end_date, index_data_dir,index_data_name_file[ind_name],ind_name)
