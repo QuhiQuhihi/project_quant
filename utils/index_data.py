@@ -32,6 +32,7 @@ class index_data:
             'bb_corp_hy':'Bloomberg Barclays US Corp HY.xlsx',
             'bb_infla_protect':'Bloomberg Barclays US Inflation Protected 7-10 year.xlsx',
             'snp_commodity':'SNP GSCI TR.xlsx',
+            'us_short_treasury':'Bloomberg Barclays US 1-3 month treasury.xlsx',
         }
         for ind_name in index_data_name_file.keys():
             # load_index_data(self.start_date, self.end_date, index_data_dir,index_data_name_file[ind_name],ind_name)
@@ -71,6 +72,8 @@ class index_data:
             'bb_corp_hy':'Bloomberg Barclays US Corp HY.xlsx',
             'bb_infla_protect':'Bloomberg Barclays US Inflation Protected 7-10 year.xlsx',
             'snp_commodity':'SNP GSCI TR.xlsx',
+            'us_short_treasury':'Bloomberg Barclays US 1-3 month treasury.xlsx',
+
         }
         for ind_name in index_data_name_file.keys():
             # load_index_data(self.start_date, self.end_date, index_data_dir,index_data_name_file[ind_name],ind_name)
