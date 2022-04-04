@@ -1,7 +1,8 @@
+from re import I
 import numpy as np
 import pandas as pd
 
-def rebalance_strategy(strategy, yld_df, bm_strategy, bm_yld_df,lookback_period = 12):
+def monthly_rebalance_strategy(strategy, yld_df, bm_strategy, bm_yld_df,lookback_period = 12):
     """
     :param strategy: investment strategy, this function should return weight of portfolio in list form
     :param yld_df: yield data of asset classes, used as input of strategy generation
@@ -22,10 +23,10 @@ def rebalance_strategy(strategy, yld_df, bm_strategy, bm_yld_df,lookback_period 
     investment_return = pd.DataFrame(columns=['strategy_return','benchmark_return'], index=date_list)
 
     for i in range(len(investment_return)):
-        if i < lookback_period:
+        if i < lookback_period-1:
             investment_weight.iloc[i,:]= 0
         else:
-            investment_weight.iloc[i,:] = strategy(yld_df.iloc[i-lookback_period : i-1])
+            investment_weight.iloc[i,:] = strategy(yld_df.iloc[i-lookback_period+1 : i+1])
 
     investment_weight['SUM']=investment_weight.sum(axis=1)
 
@@ -34,21 +35,24 @@ def rebalance_strategy(strategy, yld_df, bm_strategy, bm_yld_df,lookback_period 
 
     investment_weight['SUM']=investment_weight.sum(axis=1)
 
-    for date in date_list:
+    for i in range(len(date_list)):
         ret = 0
-        for asset in asset_list:
-            asset_return = yld_df.loc[date, asset]
-            asset_weight = investment_weight.loc[date, asset]
-            ret += (1 + asset_return) * asset_weight
-        investment_return.loc[date,'strategy_return'] = ret - 1
+        if i > 0:
+            for asset in asset_list:
+                asset_return = yld_df[asset].iloc[i]
+                asset_weight = investment_weight[asset].iloc[i]
+                ret += (1 + asset_return) * asset_weight
+            investment_return['strategy_return'].iloc[i] = ret - 1
+        else:
+            pass
 
-    for date in bm_date_list:
+    for i in range(len(bm_date_list)):
         ret = 0
         for asset in bm_asset_list:
-            bm_asset_return = bm_yld_df.loc[date, asset]
-            bm_asset_weight = benchmark_weight.loc[date, asset]
+            bm_asset_return = bm_yld_df[asset].iloc[i]
+            bm_asset_weight = benchmark_weight[asset].iloc[i]
             ret += (1 + bm_asset_return) * bm_asset_weight
-        investment_return.loc[date, 'benchmark_return'] = ret - 1
+        investment_return['benchmark_return'].iloc[i] = ret - 1
 
     # investment_return.loc[:, 'benchmark_return'] = bm_yld_df
 
@@ -132,28 +136,34 @@ def rp_rebalance_strategy(strategy, yld_df, bm_strategy, bm_yld_df,lookback_peri
         if i < lookback_period:
             investment_weight.iloc[i,:]= 0
         else:
-            investment_weight.iloc[i,:] = strategy(pd.DataFrame(yld_df.iloc[i-lookback_period : i-1]).cov())
+            investment_weight.iloc[i,:] = strategy(pd.DataFrame(yld_df.iloc[i-lookback_period+1 : i+1]).cov())
 
     for i in range(len(investment_return)):
         benchmark_weight.iloc[i,:] = bm_strategy(bm_yld_df).iloc[i]
 
     investment_weight['SUM']=investment_weight.sum(axis=1)
 
-    for date in date_list:
+    for i in range(len(date_list)):
         ret = 0
-        for asset in asset_list:
-            asset_return = yld_df.loc[date, asset]
-            asset_weight = investment_weight.loc[date, asset]
-            ret += (1 + asset_return) * asset_weight
-        investment_return.loc[date,'strategy_return'] = ret - 1
+        if i > 0:
+            for asset in asset_list:
+                asset_return = yld_df[asset].iloc[i]
+                asset_weight = investment_weight[asset].iloc[i]
+                ret += (1 + asset_return) * asset_weight
+            investment_return['strategy_return'].iloc[i] = ret - 1
+        else:
+            pass
 
-    for date in bm_date_list:
+    for i in range(len(bm_date_list)):
         ret = 0
-        for asset in bm_asset_list:
-            bm_asset_return = bm_yld_df.loc[date, asset]
-            bm_asset_weight = benchmark_weight.loc[date, asset]
-            ret += (1 + bm_asset_return) * bm_asset_weight
-        investment_return.loc[date, 'benchmark_return'] = ret - 1
+        if i > 0:
+            for asset in bm_asset_list:
+                bm_asset_return = bm_yld_df[asset].iloc[i]
+                bm_asset_weight = benchmark_weight[asset].iloc[i]
+                ret += (1 + bm_asset_return) * bm_asset_weight
+            investment_return['benchmark_return'].iloc[i] = ret - 1
+        else:
+            pass
 
     # investment_return.loc[:, 'benchmark_return'] = bm_yld_df
     investment_return = pd.concat([investment_return,investment_weight], axis=1)
@@ -192,21 +202,27 @@ def mv_rebalance_strategy(strategy, yld_df, bm_strategy, bm_yld_df,lookback_peri
 
     investment_weight['SUM']=investment_weight.sum(axis=1)
 
-    for date in date_list:
+    for i in range(len(date_list)):
         ret = 0
-        for asset in asset_list:
-            asset_return = yld_df.loc[date, asset]
-            asset_weight = investment_weight.loc[date, asset]
-            ret += (1 + asset_return) * asset_weight
-        investment_return.loc[date,'strategy_return'] = ret - 1
+        if i > 0:
+            for asset in asset_list:
+                asset_return = yld_df[asset].iloc[i]
+                asset_weight = investment_weight[asset].iloc[i]
+                ret += (1 + asset_return) * asset_weight
+            investment_return['strategy_return'].iloc[i] = ret - 1
+        else:
+            pass
 
-    for date in bm_date_list:
+    for i in range(len(bm_date_list)):
         ret = 0
-        for asset in bm_asset_list:
-            bm_asset_return = bm_yld_df.loc[date, asset]
-            bm_asset_weight = benchmark_weight.loc[date, asset]
-            ret += (1 + bm_asset_return) * bm_asset_weight
-        investment_return.loc[date, 'benchmark_return'] = ret - 1
+        if i > 0:
+            for asset in bm_asset_list:
+                bm_asset_return = bm_yld_df[asset].iloc[i]
+                bm_asset_weight = benchmark_weight[asset].iloc[i]
+                ret += (1 + bm_asset_return) * bm_asset_weight
+            investment_return['benchmark_return'].iloc[i] = ret - 1
+        else:
+            pass
 
     # investment_return.loc[:, 'benchmark_return'] = bm_yld_df
     investment_return = pd.concat([investment_return,investment_weight], axis=1)
