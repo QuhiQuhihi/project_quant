@@ -3,7 +3,10 @@ import pandas_market_calendars as mcal
 import yfinance as yf
 import quandl
 import numpy as np
+
+import datetime as dt
 from dateutil.relativedelta import relativedelta
+
 import time, requests, json
 
 
@@ -29,9 +32,9 @@ class BacktestEngine():
             self.API_key = 'ad0b46ed99911d1f77534d035a2cdb72'
             
         self.cache = {}
-        self.initialize(fred_list, yfinance_list)
+        self.initialize(fred_list, yfinance_list, market_fred_list)
         
-    def initialize(self, fred_list, yfinance_list):
+    def initialize(self, fred_list, yfinance_list, market_fred_list):
         def divide_by_ticker(df):
             return {ticker:df[df.ticker.values == ticker] 
                                 for ticker in set(df.ticker)}
@@ -40,22 +43,30 @@ class BacktestEngine():
         macro_df = self.update_macro(fred_list)
         index_df = self.update_index(yfinance_list)
 
-
-        self.cache['market'] = divide_by_ticker(macro_df)
+        self.cache['market'] = divide_by_ticker(market_df)
         self.cache['macro'] = divide_by_ticker(macro_df)
         self.cache['index'] = divide_by_ticker(index_df)
         
     def update_market(self, market_fred_list):
 
-        market_list = ['BAMLH0A0HYM2', 'T10Y2Y','T10YIE', 'T5YIE']
+        market_list = ['BAMLH0A0HYM2', 'T10Y2Y', 'T5YIE']
         market_list = set(market_list+market_fred_list)
+
+        ### Daily Market
+        # market_fred_list = [
+        #     'BAMLH0A0HYM2', # ICE BofA US High Yield Index Option-Adjusted Spread # 1996-12-31
+        #     'BAMLC0A4CBBB', # ICE BofA BBB US Corporate Index Option-Adjusted Spread # 1996-12-31
+        #     'BAMLH0A3HYC',  # ICE BofA CCC & Lower US High Yield Index Option-Adjusted Spread # 1996-12-31
+        #     'T10Y2Y', # 10-Year Treasury Constant Maturity Minus 2-Year Treasury Constant Maturity # 1976-06-01
+        #     'T10YIE', # 10-Year Breakeven Inflation Rate # 2003-01-02
+        #     'T5YIE',  # 5-Year Breakeven Inflation Rate # 2003-01-02 
+        #     ]
 
         df = None
         for ticker in market_list:
             df_add = self._get_PIT_market_df(ticker)
             df_add['ticker'] = [ticker for _ in df_add.index]
             df = pd.concat([df, df_add],axis=0)
-            print("--- good ---")
 
         df = df.sort_index()        
         return df
@@ -65,6 +76,16 @@ class BacktestEngine():
 
         macro_list = ['CPIAUCSL', 'PCE', 'M2', 'ICSA']
         macro_list = set(macro_list+fred_list)
+        
+        ### Periodic Macro Index
+        # fred_list = [
+        # 'CSUSHPINSA', # S&P/Case-Shiller U.S. National Home Price Index # 1987-01-01
+        # 'UMCSENT' ,   # University of Michigan: Consumer Sentiment # 1952-11-01
+        # 'CPIAUCSL',   # Consumer Price Index for All Urban Consumers: All Items in U.S. City Average  # 1947-01-01
+        # 'PCE',  # Personal Consumption Expenditures  # 1959-01-01
+        # 'M2SL', # M2 #1959-01-01
+        # 'ICSA', # Initial Claims # 1967-01-07
+        # ]
 
         df = None
         for ticker in macro_list:
@@ -72,7 +93,6 @@ class BacktestEngine():
             # df_add = self._get_PIT_df_rev(ticker)
             df_add['ticker'] = [ticker for _ in df_add.index]
             df = pd.concat([df, df_add],axis=0)
-            print("--- good ---")
 
         df = df.sort_index()        
         return df
@@ -110,114 +130,60 @@ class BacktestEngine():
         df = df[['value','datekey','is_inferred']]
         df['cdate'] = df.index
         df = df.set_index('datekey')
-        print(df)
         return df
 
     def _get_PIT_market_df(self, ID):
         API_KEY = self.API_key
+        today = dt.datetime.today()
         REAL_TIME_START, REAL_TIME_END = '2000-01-01', '9999-12-31'
-        
-        _start_end_pair = [
-            ['2000-01-01', '2004-12-31'],
-            ['2005-01-01', '2009-12-31'],
-            ['2010-01-01', '2014-12-31'],
-            ['2015-01-01', '2019-12-31'],
-            ['2020-01-01', '9999-12-31']
-        ]
+        _REAL_TIME_START = dt.datetime.strptime(REAL_TIME_START, '%Y-%m-%d') 
+        _REAL_TIME_END = dt.datetime.strptime(REAL_TIME_END, '%Y-%m-%d') 
+
+        start = _REAL_TIME_START
+
 
         df0 = None
-        for date_range in _start_end_pair:
-            REAL_TIME_START = date_range[0]
-            REAL_TIME_END = date_range[1]
+        # df0 = pd.DataFrame(columns=['date','value','ticker'])
+        # df0 = df0.set_index('date')
+
+        for i in range(10000):
+            start = start + relativedelta(years = i * 5)
+            end = start + relativedelta(years = 5)
+
+            if today < start:
+                break
+            elif end > today:
+                end = _REAL_TIME_END # 9999-12-31
+
+            _start = start.strftime('%Y-%m-%d')
+            _end = end.strftime('%Y-%m-%d')
             
             url = 'https://api.stlouisfed.org/fred/series/observations?series_id={}'.format(ID)
             url += '&observation_start={}&observation_end={}&api_key={}&frequency={}&file_type=json'.format(
-                                            REAL_TIME_START, REAL_TIME_END,API_KEY,'d')
-            print(url)
+                                            _start, _end,API_KEY,'d')
+            # print(url)
 
-            
             response = requests.get(url)
             observations = json.loads(response.text)['observations']
-            print(pd.DataFrame(observations).columns)
 
-            
             df = pd.DataFrame(observations)
             df = df[['date','value']].sort_values(['date']).groupby('date').first()
-            print(df)
+            # df = df.set_index('date')
             df.index = pd.to_datetime(df.index)
-            df.realtime_start = pd.to_datetime(df.realtime_start)
+            df0 = pd.concat([df, df0], axis=0)
 
-            df['datekey'] = df.realtime_start
-            df['is_inferred'] = (df.datekey == df.datekey.shift(1))|(
-                df.datekey == df.datekey.shift(-1))
-
-            non_inferred_df = df[df['is_inferred']==False]
-            lag_list = [(y-x).days for x,y in 
-                            zip(non_inferred_df.index, non_inferred_df.datekey)]
-            mean_lag, max_lag = int(np.mean(lag_list)+1), int(np.max(lag_list)+1)
-            
-            df.datekey = [
-                date + relativedelta(days=mean_lag) if df.loc[date].is_inferred
-                else df.loc[date].datekey
-                for date in df.index]
-
-            df = df[['value','datekey','is_inferred']]
-            df['cdate'] = df.index
-            df = df.set_index('datekey')
-
-            print(date_range)
-            
-            df0 = pd.concat([df0, df], axis=1)
-
-        return df
+        return df0.sort_values(['date'])
 
 
     def update_index(self, yfinance_list):
         df = None
+
+        yf_ticker_list = ['SPY']
+        
         # Basic Index
-        yf_ticker_list = [
-            '^GSPC','^IXIC','^DJI','^RUT','^VIX','^TNX','^SP500TR',
-            'GC=F', 'CL=F']
-        # Broad Market ETF
-        yf_ticker_list += [
-            'SPY', # SPDR S&P 500 ETF Trust # 1993-01-22
-            'EFA', # iShares MSCI EAFE ETF # 2001-08-14
-            'EEM', # iShares MSCI Emerging Markets ETF # 2003-04-07
-            'AGG', # iShares Core U.S. Aggregate Bond ETF # 2003-09-22
-            ]
-        # # Fixed Income ETF
-        # yf_ticker_list += [
-        #     'SHY', # iShares 1-3 Year Treasury Bond ETF # 2002-07-22
-        #     'IEF', # iShares 7-10 Year Treasury Bond ETF # 2002-07-22
-        #     'TLH', # iShares 10-20 Year Treasury Bond ETF # 2007-01-05
-        #     'TLT', # iShares 20+ Year Treasury Bond ETF # 2002-07-22
-        #     'AGG', # iShares Core U.S. Aggregate Bond ETF # 2003-09-22
-        #     'LQD', # iShares iBoxx $ Investment Grade Corporate Bond ETF # 2002-07-22
-        #     'HYG', # iShares iBoxx $ High Yield Corporate Bond ETF # 2007-04-04
-        #     'TIP', # iShares TIPS Bond ETF # 2003-12-04
-        #     'MBB', # iShares MBS ETF # 2007-03-13
-        #     'EMB', # iShares J.P. Morgan USD Emerging Markets Bond ETF # 2007-12-17
-        # ]
-        # # Alternative Asset ETF
-        # yf_ticker_list += [
-        #     'VNQ', # Vanguard Real Estate Index Fund # 2004-09-23
-        #     'GLD', # SPDR Gold Shares # 2004-11-18
-        #     'IGF', # iShares Global Infrastructure ETF # 2007-12-10
-        #     'USO', # United States Oil Fund, LP # 2006-04-10
-        #     'UUP', # Invesco DB US Dollar Index Bullish Fund # 2007-07-20
-        #     ]
-        # yf_ticker_list += [
-        #     'XLC', # Communication Services Select Sector SPDR Fund # 2018-06-18
-        #     'XLY', # Consumer Discretionary Select Sector SPDR Fund # 1998-12-16
-        #     'XLP', # Consumer Staples Select Sector SPDR Fund # 1998-12-16
-        #     'XLE', # Energy Select Sector SPDR Fund # 1998-12-16
-        #     'XLF', # Financial Select Sector SPDR Fund # 1998-12-16
-        #     'XLV', # Health Care Select Sector SPDR Fund # 1998-12-16
-        #     'XLI', # Industrial Select Sector SPDR Fund # 1998-12-16
-        #     'XLB', # Materials Select Sector SPDR Fund # 1998-12-16
-        #     'XLK', # Technology Select Sector SPDR Fund # 1998-12-16
-        #     'XLU', # Utilities Select Sector SPDR Fund # 1998-12-16
-        #     ]
+        # yf_ticker_list = [
+        #     '^GSPC','^IXIC','^DJI','^RUT','^VIX','^TNX','^SP500TR',
+        #     'GC=F', 'CL=F']
 
         # concatenate ticker list (basic and additional)
         yf_ticker_list = set(yf_ticker_list + yfinance_list)
