@@ -38,29 +38,30 @@ class BacktestEngine():
         def divide_by_ticker(df):
             return {ticker:df[df.ticker.values == ticker] 
                                 for ticker in set(df.ticker)}
-        
-        market_df = self.update_market(market_fred_list)
-        macro_df = self.update_macro(fred_list)
-        index_df = self.update_index(yfinance_list)
 
-        self.cache['market'] = divide_by_ticker(market_df)
-        self.cache['macro'] = divide_by_ticker(macro_df)
-        self.cache['index'] = divide_by_ticker(index_df)
+        try:
+            market_df = self.update_market(market_fred_list)
+            self.cache['market'] = divide_by_ticker(market_df)
+        except:
+            print("looks like market data generation has problem")
+        
+        try:
+            macro_df = self.update_macro(fred_list)
+            self.cache['macro'] = divide_by_ticker(macro_df)
+        except:
+            print("looks like macro data generation has problem")
+
+        try:
+            index_df = self.update_index(yfinance_list)
+            self.cache['index'] = divide_by_ticker(index_df)
+        except:
+            print("looks like index data generation has problem")
+
         
     def update_market(self, market_fred_list):
 
-        market_list = ['BAMLH0A0HYM2', 'T10Y2Y', 'T5YIE']
+        market_list = ['BAMLH0A0HYM2']
         market_list = set(market_list+market_fred_list)
-
-        ### Daily Market
-        # market_fred_list = [
-        #     'BAMLH0A0HYM2', # ICE BofA US High Yield Index Option-Adjusted Spread # 1996-12-31
-        #     'BAMLC0A4CBBB', # ICE BofA BBB US Corporate Index Option-Adjusted Spread # 1996-12-31
-        #     'BAMLH0A3HYC',  # ICE BofA CCC & Lower US High Yield Index Option-Adjusted Spread # 1996-12-31
-        #     'T10Y2Y', # 10-Year Treasury Constant Maturity Minus 2-Year Treasury Constant Maturity # 1976-06-01
-        #     'T10YIE', # 10-Year Breakeven Inflation Rate # 2003-01-02
-        #     'T5YIE',  # 5-Year Breakeven Inflation Rate # 2003-01-02 
-        #     ]
 
         df = None
         for ticker in market_list:
@@ -74,19 +75,9 @@ class BacktestEngine():
 
     def update_macro(self, fred_list):
 
-        macro_list = ['CPIAUCSL', 'PCE', 'M2', 'ICSA']
+        macro_list = ['CPIAUCSL']
         macro_list = set(macro_list+fred_list)
         
-        ### Periodic Macro Index
-        # fred_list = [
-        # 'CSUSHPINSA', # S&P/Case-Shiller U.S. National Home Price Index # 1987-01-01
-        # 'UMCSENT' ,   # University of Michigan: Consumer Sentiment # 1952-11-01
-        # 'CPIAUCSL',   # Consumer Price Index for All Urban Consumers: All Items in U.S. City Average  # 1947-01-01
-        # 'PCE',  # Personal Consumption Expenditures  # 1959-01-01
-        # 'M2SL', # M2 #1959-01-01
-        # 'ICSA', # Initial Claims # 1967-01-07
-        # ]
-
         df = None
         for ticker in macro_list:
             df_add = self._get_PIT_df(ticker)
@@ -228,6 +219,8 @@ class BacktestEngine():
         print('Backtest period: {} -- {}'.format(self.bdates[1], self.bdates[-1]))
 
         date = self.bdates[0]
+        self.date = date # dh.kim added
+
         self.asset[date] = {'cash':1}
         universe_list = self.get_universe(date, custom_universe)
         self.delisted_tickers = []
@@ -236,6 +229,7 @@ class BacktestEngine():
         is_rebal = True
 
         for date in self.bdates[1:]:
+            # self.date = date # dh.kim added
             self.update_asset(date)
             self.liquidate_delisted_tickers(date)
             
@@ -252,6 +246,7 @@ class BacktestEngine():
             is_rebal = self.set_rebal_condition(date, period)
                
             if is_rebal:
+                self.date = date # dh.kim added
                 universe_list = self.get_universe(date, custom_universe)
                 universe_list = list(set(universe_list)-set(self.delisted_tickers))
                 self.delisted_tickers = []
