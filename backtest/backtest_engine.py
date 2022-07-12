@@ -267,7 +267,6 @@ class BacktestEngine():
 
     def rebalance_asset(self, date, target_weight, transaction_cost):
         current_asset = self.asset[date].copy()
-
         total_asset = sum(current_asset.values())
         target_asset = {ticker:total_asset*target_weight[ticker] for ticker in target_weight}
         transaction_asset = {}
